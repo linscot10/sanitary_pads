@@ -9,10 +9,19 @@ const { findById, findByIdAndUpdate } = require('../model/User.model');
 const router = express.Router();
 
 // creating user
-router.post('/inventory', async (req, res, next) => {
+router.post('/inventory/add', async (req, res, next) => {
     const { itemId, name, quantity, description, receivedDate, releaseDate } = req.body;
     try {
-        const newItem = new Inventory({ itemId, name, quantity, description, receivedDate, releaseDate })
+        let newItem = await Inventory.findOne({ itemId });
+        if (!newItem) {
+            // If item does not exist in inventory, create it
+            newItem == new Inventory({ itemId, name, quantity, description, receivedDate, releaseDate })
+        } else {
+            // If item exists, update quantity
+            newItem.quantity += quantity;
+        }
+
+        newItem.lastUpdated = Date.now();
         await newItem.save();
         res.status(201).json(newItem)
 
@@ -21,6 +30,30 @@ router.post('/inventory', async (req, res, next) => {
     }
 
 })
+
+// Reduce stock (e.g., when pads are distributed)
+router.post('/inventory/reduce', async (req, res) => {
+    const { itemId, quantity } = req.body;
+  
+    try {
+      const inventory = await Inventory.findOne({ itemId });
+      if (!inventory) {
+        return res.status(404).json({ message: 'Item not found in inventory' });
+      }
+  
+      if (inventory.quantity < quantity) {
+        return res.status(400).json({ message: 'Not enough stock available' });
+      }
+  
+      inventory.quantity -= quantity;
+      inventory.lastUpdated = Date.now();
+      await inventory.save();
+  
+      res.status(200).json(inventory);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+    }
+  });
 
 // Get All Users
 router.get('/inventory', async (req, res, next) => {
@@ -83,6 +116,8 @@ router.delete('/inventory/:id', async (req, res, next) => {
         res.status(500).json({ message: error.message });
     }
 })
+
+
 
 
 module.exports = router;

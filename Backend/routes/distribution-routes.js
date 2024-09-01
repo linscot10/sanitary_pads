@@ -8,11 +8,14 @@ const Distribution = require('../model/Distribution.model')
 const router = express.Router();
 
 // creating user
-router.post('/api/distributions', async (req, res, next) => {
-    const { distributionId, distributorId, recipientId, itemId, quantityDistributed } = req.body;
-
+router.post('/distributions', async (req, res, next) => {
+    const { deliveryLocation, distributorId, recipientId,  quantityDistributed,distributionId } = req.body;
+    if (!quantityDistributed || !recipientId || !deliveryLocation || !location) {
+        return res.status(400).json({ message: 'Quantity, recipient, and delivery location are required' });
+    }
     try {
-        const newDistribution = new Distribution({ distributionId, distributorId, recipientId, itemId, quantityDistributed, });
+        // dont forget to add location
+        const newDistribution = new Distribution({distributionId, deliveryLocation,  distributorId, recipientId, quantityDistributed, });
         await newDistribution.save();
         res.status(201).json(newDistribution);
     } catch (error) {
@@ -21,7 +24,7 @@ router.post('/api/distributions', async (req, res, next) => {
 })
 
 // Get All Users
-router.get('/api/distributions', async (req, res, next) => {
+router.get('/distributions', async (req, res, next) => {
     try {
         const distributions = await Distribution.find().populate('distributorId recipientId itemId');
         res.json(distributions);

@@ -1,17 +1,19 @@
 const uuid = require('uuid');
 const express = require('express');
 const mongoose = require('mongoose');
+require('dotenv').config();
 // const { check } = require('express-validator');
 // const { validationResult } = require('express-validator');
 
 const User = require('../model/User.model');
+const authentication = require('../middlware/authentication')
 
 
 const router = express.Router();
 
 
 // creating user
-router.post('/register', async (req, res, next) => {
+router.post('/users', async (req, res, next) => {
     const { username, name, email, password, role } = req.body;
 
     try {
@@ -34,6 +36,7 @@ router.post('/login', async (req, res) => {
         const token = user.generateToken();
         res.status(200).json({ token });
     } catch (error) {
+        console.error('Error during login:', error);
         res.status(500).json({ error: 'Login failed' });
     }
 });
@@ -67,7 +70,7 @@ router.get('/users/:id', async (req, res, next) => {
 
 // get user profile
 
-router.get('/profile', authMiddleware, async (req, res) => {
+router.get('/profile', authentication, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
         if (!user) return res.status(404).json({ error: 'User not found' });
