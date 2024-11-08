@@ -26,21 +26,67 @@ router.post('/users', async (req, res, next) => {
     }
 })
 
+router.post('/register', async (req, res, next) => {
+    const { username, name, email, password, role } = req.body;
+
+    try {
+        const newUser = new User({ username, name, email, password, role });
+        await newUser.save();
+        res.status(201).json(newUser)
+
+    } catch (error) {
+        res.status(400).json({ message: error.message })
+    }
+})
+
+// router.post('/login', async (req, res) => {
+//     try {
+//         const { email, password } = req.body;
+//         const user = await User.findOne({ email });
+//         if (!user || !(await user.comparePassword(password))) {
+//             return res.status(401).json({ error: 'Invalid email or password' });
+//         }
+//         const token = user.generateToken();
+//         res.status(200).json({ token });
+//     } catch (error) {
+//         console.error('Error during login:', error);
+//         res.status(500).json({ error: 'Login failed' });
+//     }
+// });
+
 router.post('/login', async (req, res) => {
     try {
+
         const { email, password } = req.body;
         const user = await User.findOne({ email });
-        if (!user || !(await user.comparePassword(password))) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+
+        if (user && await user.comparePassword(password)) {
+            const token = user.generateToken();
+
+            // Redirect to admin panel if the user is an admin
+            if (user.role === 'Admin') {
+                // Send admin-specific data
+                return res.status(200).json({
+                    message: 'Admin login successful',
+                    token,
+                    role: user.role,
+                    redirectUrl: '/applications'
+                });
+            }
+
+            // If not Admin, regular user login
+            res.status(200).json({
+                message: 'User login successful',
+                token,
+                role: user.role,
+                redirectUrl: '/user-dashboard'
+            });
         }
-        const token = user.generateToken();
-        res.status(200).json({ token });
     } catch (error) {
-        console.error('Error during login:', error);
+        console.error('Login error:', error);
         res.status(500).json({ error: 'Login failed' });
     }
 });
-
 // Get All Users
 router.get('/users', async (req, res, next) => {
 
@@ -48,7 +94,7 @@ router.get('/users', async (req, res, next) => {
         const users = await User.find()
         res.json(users)
     } catch (error) {
-        res.json(400).json({ message: error.message })
+        res.status(400).json({ message: error.message })
     }
 })
 
@@ -115,4 +161,7 @@ router.delete('/users/:id', async (req, res, next) => {
     }
 })
 
+
+
 module.exports = router;
+
